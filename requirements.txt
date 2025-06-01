@@ -1,2 +1,4 @@
 voicemeeter-api>=2.6.1
 keyboard
+pystray>=0.19.4
+Pillow>=10.0.0
