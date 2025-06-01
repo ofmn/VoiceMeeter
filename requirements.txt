@@ -1,0 +1,2 @@
+voicemeeter-api>=2.6.1
+keyboard
