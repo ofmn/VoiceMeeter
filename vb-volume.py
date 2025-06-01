@@ -11,6 +11,20 @@ import json
 KIND_ID = 'banana'
 STRIP_INDEX = 3
 
+# Numpad scan codes (Windows)
+NUMPAD_SCAN_CODES = {
+    82: '0',  # Numpad 0
+    79: '1',  # Numpad 1
+    80: '2',  # Numpad 2
+    81: '3',  # Numpad 3
+    75: '4',  # Numpad 4
+    76: '5',  # Numpad 5
+    77: '6',  # Numpad 6
+    71: '7',  # Numpad 7
+    72: '8',  # Numpad 8
+    73: '9',  # Numpad 9
+}
+
 
 def resource_path(relative_path):
     """Get absolute path to resource, works for dev and for PyInstaller"""
@@ -254,6 +268,40 @@ class VoiceMeeterTray:
                     pass
             time.sleep(0.5)  # Update every 500ms
 
+    def setup_numpad_hotkeys(self):
+        """Set up numpad-specific hotkeys using scan codes"""
+        def on_key_event(event):
+            # Only process key down events
+            if event.event_type != keyboard.KEY_DOWN:
+                return
+            
+            # Check if Alt is pressed
+            if not keyboard.is_pressed('alt'):
+                return
+            
+            # Check if it's a numpad key we care about
+            if event.scan_code in NUMPAD_SCAN_CODES:
+                numpad_key = NUMPAD_SCAN_CODES[event.scan_code]
+                
+                if numpad_key == '0':
+                    self.toggle_mute()
+                    print("Numpad hotkey: Alt+Numpad 0 - Toggle Mute")
+                elif numpad_key == '1':
+                    self.toggle_bus('A1')
+                    print("Numpad hotkey: Alt+Numpad 1 - Toggle A1")
+                elif numpad_key == '2':
+                    self.toggle_bus('A2')
+                    print("Numpad hotkey: Alt+Numpad 2 - Toggle A2")
+                elif numpad_key == '3':
+                    self.change_gain(-2.0)
+                    print("Numpad hotkey: Alt+Numpad 3 - Decrease Gain")
+                elif numpad_key == '6':
+                    self.change_gain(2.0)
+                    print("Numpad hotkey: Alt+Numpad 6 - Increase Gain")
+        
+        # Hook into keyboard events
+        keyboard.hook(on_key_event)
+
     def run(self):
         """Main run method"""
         # Enable parameter dirty tracking for real-time updates
@@ -267,12 +315,8 @@ class VoiceMeeterTray:
             print(f"  A2: {vm.strip[STRIP_INDEX].A2}")
             print(f"  Gain: {vm.strip[STRIP_INDEX].gain:.1f}dB")
             
-            # Set up hotkeys
-            keyboard.add_hotkey('alt+num 0', lambda: self.toggle_mute(), suppress=True)
-            keyboard.add_hotkey('alt+num 1', lambda: self.toggle_bus('A1'), suppress=True)
-            keyboard.add_hotkey('alt+num 2', lambda: self.toggle_bus('A2'), suppress=True)
-            keyboard.add_hotkey('alt+num 3', lambda: self.change_gain(-2.0), suppress=True)
-            keyboard.add_hotkey('alt+num 6', lambda: self.change_gain(2.0), suppress=True)
+            # Set up numpad-specific hotkeys using scan codes
+            self.setup_numpad_hotkeys()
 
             # Create tray icon using MenuItem with default=True for left-click
             initial_icon = self.create_icon_image(self.is_muted())
@@ -288,7 +332,7 @@ class VoiceMeeterTray:
             update_thread.start()
             
             print("VoiceMeeter Tray Controller started!")
-            print("Hotkeys: Alt+Numpad 0/1/2/3/6")
+            print("Hotkeys: Alt+Numpad 0/1/2/3/6 (numpad keys only)")
             print("Left-click tray icon to toggle mute")
             print("Right-click for menu")
             
