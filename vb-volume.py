@@ -286,21 +286,26 @@ class VoiceMeeterTray:
                 if numpad_key == '0':
                     self.toggle_mute()
                     print("Numpad hotkey: Alt+Numpad 0 - Toggle Mute")
+                    return False  # Suppress the event
                 elif numpad_key == '1':
                     self.toggle_bus('A1')
                     print("Numpad hotkey: Alt+Numpad 1 - Toggle A1")
+                    return False  # Suppress the event
                 elif numpad_key == '2':
                     self.toggle_bus('A2')
                     print("Numpad hotkey: Alt+Numpad 2 - Toggle A2")
+                    return False  # Suppress the event
                 elif numpad_key == '3':
                     self.change_gain(-2.0)
                     print("Numpad hotkey: Alt+Numpad 3 - Decrease Gain")
+                    return False  # Suppress the event
                 elif numpad_key == '6':
                     self.change_gain(2.0)
                     print("Numpad hotkey: Alt+Numpad 6 - Increase Gain")
+                    return False  # Suppress the event
         
-        # Hook into keyboard events
-        keyboard.hook(on_key_event)
+        # Hook into keyboard events with suppression enabled
+        keyboard.hook(on_key_event, suppress=False)
 
     def run(self):
         """Main run method"""
