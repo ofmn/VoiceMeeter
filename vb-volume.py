@@ -16,16 +16,55 @@ class VoiceMeeterTray:
         self.running = True
         
     def create_icon_image(self, muted=False):
-        """Create a simple icon - red when muted, green when unmuted"""
+        """Create a context-aware icon using custom PNG files"""
+        try:
+            # Get current bus states
+            a1_active = self.is_bus_active('A1')  # Headset
+            a2_active = self.is_bus_active('A2')  # Speakers
+            
+            if muted:
+                # When muted, show muted.png
+                icon_path = "muted.png"
+            elif a1_active and a2_active:
+                # Both active - show unmute.png
+                icon_path = "unmute.png"
+            elif a1_active and not a2_active:
+                # Only headset (A2 toggled off) - show headset.png
+                icon_path = "headset.png"
+            elif a2_active and not a1_active:
+                # Only speakers (A1 toggled off) - show speakers.png
+                icon_path = "speakers.png"
+            else:
+                # Neither active - fallback to muted.png
+                icon_path = "muted.png"
+            
+            # Load the appropriate icon
+            image = Image.open(icon_path)
+            
+            # Ensure it's the right size
+            if image.size != (64, 64):
+                image = image.resize((64, 64), Image.Resampling.LANCZOS)
+            
+            # Keep transparency - don't convert to RGB
+            return image
+            
+        except Exception as e:
+            print(f"Error loading icon {icon_path}: {e}")
+            # Fallback to simple programmatic icon
+            return self.create_fallback_icon(muted)
+
+    def create_fallback_icon(self, muted=False):
+        """Fallback icon if PNG files are not found"""
         image = Image.new('RGB', (64, 64), color='white')
         draw = ImageDraw.Draw(image)
         
-        color = 'red' if muted else 'green'
-        draw.ellipse([8, 8, 56, 56], fill=color, outline='black', width=2)
+        bg_color = 'red' if muted else 'green'
+        draw.ellipse([4, 4, 60, 60], fill=bg_color, outline='black', width=2)
         
-        # Add "M" for muted
         if muted:
-            draw.text((24, 20), "M", fill='white', anchor="mm")
+            draw.text((32, 32), "M", fill='white', anchor="mm")
+        else:
+            draw.text((32, 32), "♪", fill='white', anchor="mm")
         
         return image
 
