@@ -4,9 +4,35 @@ import pystray
 from PIL import Image, ImageDraw
 import threading
 import time
+import sys
+import os
+import json
 
 KIND_ID = 'banana'
 STRIP_INDEX = 3
+
+
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+
+def get_settings_path():
+    """Get path for settings file in user directory"""
+    # Use user's home directory for persistent storage
+    home_dir = os.path.expanduser("~")
+    settings_dir = os.path.join(home_dir, ".voicemeeter-controller")
+    
+    # Create directory if it doesn't exist
+    if not os.path.exists(settings_dir):
+        os.makedirs(settings_dir)
+    
+    return os.path.join(settings_dir, "settings.json")
 
 
 class VoiceMeeterTray:
@@ -14,7 +40,36 @@ class VoiceMeeterTray:
         self.vm = None
         self.icon = None
         self.running = True
+        self.icon_theme = ""  # "" for regular icons, "1" for white icons
+        self.settings_file = get_settings_path()
+        self.load_settings()
         
+    def load_settings(self):
+        """Load settings from JSON file"""
+        try:
+            if os.path.exists(self.settings_file):
+                with open(self.settings_file, 'r') as f:
+                    settings = json.load(f)
+                    self.icon_theme = settings.get('icon_theme', '')
+                    print(f"Loaded settings: icon_theme = {'white' if self.icon_theme == '1' else 'regular'}")
+            else:
+                print("No settings file found, using default settings")
+        except Exception as e:
+            print(f"Error loading settings: {e}")
+            self.icon_theme = ""  # Default to regular icons
+    
+    def save_settings(self):
+        """Save settings to JSON file"""
+        try:
+            settings = {
+                'icon_theme': self.icon_theme
+            }
+            with open(self.settings_file, 'w') as f:
+                json.dump(settings, f, indent=2)
+            print(f"Settings saved to: {self.settings_file}")
+        except Exception as e:
+            print(f"Error saving settings: {e}")
+
     def create_icon_image(self, muted=False):
         """Create a context-aware icon using custom PNG files"""
         try:
@@ -24,21 +79,22 @@ class VoiceMeeterTray:
             
             if muted:
                 # When muted, show muted.png
-                icon_path = "muted.png"
+                icon_name = f"muted{self.icon_theme}.png"
             elif a1_active and a2_active:
                 # Both active - show unmute.png
-                icon_path = "unmute.png"
+                icon_name = f"unmute{self.icon_theme}.png"
             elif a1_active and not a2_active:
                 # Only headset (A2 toggled off) - show headset.png
-                icon_path = "headset.png"
+                icon_name = f"headset{self.icon_theme}.png"
             elif a2_active and not a1_active:
                 # Only speakers (A1 toggled off) - show speakers.png
-                icon_path = "speakers.png"
+                icon_name = f"speakers{self.icon_theme}.png"
             else:
                 # Neither active - fallback to muted.png
-                icon_path = "muted.png"
+                icon_name = f"muted{self.icon_theme}.png"
             
-            # Load the appropriate icon
+            # Load the appropriate icon from icons folder
+            icon_path = resource_path(os.path.join("icons", icon_name))
             image = Image.open(icon_path)
             
             # Ensure it's the right size
@@ -142,6 +198,13 @@ class VoiceMeeterTray:
             self.icon.icon = self.create_icon_image(muted)
             self.icon.title = self.get_tooltip()
 
+    def set_icon_theme(self, theme_suffix):
+        """Set the icon theme ('' for regular, '1' for white)"""
+        self.icon_theme = theme_suffix
+        self.save_settings()  # Save immediately when changed
+        print(f"Switched to {'white' if theme_suffix == '1' else 'regular'} icons")
+        self.update_icon()
+
     def create_menu(self):
         """Create the context menu"""
         current_gain = self.get_current_gain()
@@ -162,6 +225,11 @@ class VoiceMeeterTray:
                 pystray.MenuItem("Increase (+4dB)", lambda item: self.change_gain(4.0)),
                 pystray.MenuItem("Decrease (-4dB)", lambda item: self.change_gain(-4.0)),
                 pystray.MenuItem("Decrease (-2dB)", lambda item: self.change_gain(-2.0)),
+            )),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem("Icon Theme", pystray.Menu(
+                pystray.MenuItem("Regular Icons", lambda item: self.set_icon_theme(""), checked=lambda item: self.icon_theme == ""),
+                pystray.MenuItem("White Icons", lambda item: self.set_icon_theme("1"), checked=lambda item: self.icon_theme == "1"),
             )),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("Exit", self.quit_application)
