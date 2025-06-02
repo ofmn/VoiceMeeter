@@ -226,8 +226,8 @@ class VoiceMeeterTray:
         return pystray.Menu(
             pystray.MenuItem("Mute", self.toggle_mute, checked=lambda item: self.is_muted(), default=True),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem("Bus A1", lambda item: self.toggle_bus('A1'), checked=lambda item: self.is_bus_active('A1')),
-            pystray.MenuItem("Bus A2", lambda item: self.toggle_bus('A2'), checked=lambda item: self.is_bus_active('A2')),
+            pystray.MenuItem("Bus A1 - Headset", lambda item: self.toggle_bus('A1'), checked=lambda item: self.is_bus_active('A1')),
+            pystray.MenuItem("Bus A2 - Speakers", lambda item: self.toggle_bus('A2'), checked=lambda item: self.is_bus_active('A2')),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem(f"Gain Control (Current: {current_gain:.1f}dB)", pystray.Menu(
                 pystray.MenuItem("Set to 0dB", lambda item: self.set_gain(0.0)),
